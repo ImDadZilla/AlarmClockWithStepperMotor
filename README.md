@@ -6,7 +6,7 @@
 * LiquidCrystal_I2C.h
 * "src\Arduino-DS3231-master\DS3231.h"
 
-The Arduino-DS3231-master library can be found here (https://github.com/jarzebski/Arduino-DS3231)
+The Arduino-DS3231-master library can be found here https://github.com/jarzebski/Arduino-DS3231
 
 This code was created for use on a 16x2 lcd display and uses 4 buttons connected to pins 9-12 connected to gnd using INPUT_PULLUP.  It even handles debouncing of button presses.
 The original project was for a 3D printed dispenser my son made that included the alarm clock to dispense his daily meds.  The stepper motor turns 180 degrees when the alarm is triggered.
