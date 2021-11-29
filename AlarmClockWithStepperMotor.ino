@@ -5,7 +5,7 @@
 
 DS3231 clock;
 RTCDateTime dt;
-LiquidCrystal_I2C lcd(0x27, 16, 2); // set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 16, 2); 
 RTCAlarmTime alarm1;
 
 // Pin definitions
@@ -15,6 +15,9 @@ RTCAlarmTime alarm1;
 #define BUTTON_PIN4 12 // ok
 #define buzzer 2        //**************Alarm***************//
 // ---------------------------------
+// compiler constants
+#define menuIdleTime (long)60000
+#define stepsPerRevolution (int16_t)2038  // change this to fit the number of steps per revolution
 
 
 // ******************************
@@ -57,14 +60,9 @@ class button {    // this class handles button presses and debouncing
 
 
 //************Variables**************//
-int alarm1Hour = 0;
-int alarm1Minute = 0;
-int menu = 0;
+uint8_t menu = 0;
 unsigned long menuTime;
-const long menuIdleTime = 60000;
 String currentScreen;
-const int stepsPerRevolution = 2038;  // change this to fit the number of steps per revolution
-const int stepsPerHalfRevolution = 1019;
 Stepper myStepper(stepsPerRevolution, 4,6,5,7);                 // initialize the stepper library on pins 4-7 (NOTE: The order of 4,6,5,7 is on purpose for the stepper motor to work)
 button buttons[] = {
   {BUTTON_PIN1},
@@ -84,7 +82,7 @@ void setup() {
   }                                             // end failsafe
   
   // set buttons array
-  for(int i = 0; i < NumButtons; i++){
+  for(uint8_t i = 0; i < NumButtons; i++){
     pinMode(buttons[i].pin, INPUT_PULLUP);
   }
 
@@ -99,13 +97,11 @@ void setup() {
   lcd.backlight();                              // turn on lcd backlight
 
   RTCAlarmTime alarm1 = clock.getAlarm1();                                    // get the alarm1 time
-  alarm1Hour = alarm1.hour;                                                   // get the alarm1 hour
-  alarm1Minute = alarm1.minute;                                               // get the alarm1 minute
-  clock.setAlarm1(0, alarm1Hour, alarm1Minute, 0, DS3231_MATCH_H_M_S);        // set the alarm
+  clock.setAlarm1(0, alarm1.hour, alarm1.minute, 0, DS3231_MATCH_H_M_S);        // set the alarm
 }
 
 void loop() {
-  for(int i = 0; i < NumButtons; i++) {
+  for(uint8_t i = 0; i < NumButtons; i++) {
     buttons[i].update();                        // detect button press
     if(buttons[i].triggered) {                  // button was pressed and released and has triggered.
       menuTime = millis();
@@ -113,7 +109,7 @@ void loop() {
       switch (i) {                              // which button was pressed?
         case 0:                                 // "menu" button pressed
           menu = menu + 1;
-          if(menu > 2) {
+          if(menu > 3) {
             menu = 0;
           }
           lcd.clear();
@@ -129,6 +125,10 @@ void loop() {
             case 2: 
               displayAlarmStatus();
               break;
+
+            case 3:
+              changeDateTime();
+              break;
           }
           break;                                                                // end of menu button pressed case
 
@@ -136,23 +136,48 @@ void loop() {
           switch (menu) {
             case 1:                                                             // up button pressed while on menu 1, alarm display &&
               if(currentScreen == "displayAlarm1Hour") {                        // on displayAlarm1Hour screen
-                incrementAlarm1Hour(alarm1Hour);
+                RTCAlarmTime al = clock.getAlarm1();
+                incrementAlarm1Hour(al);
                 lcd.clear();
                 displayAlarm1Hour();
               } else if (currentScreen == "displayAlarm1Minute") {              // on displayAlarm1Minute screen
-                incrementAlarm1Minute(alarm1Minute);
+                RTCAlarmTime al = clock.getAlarm1();
+                incrementAlarm1Minute(al);
                 lcd.clear();
                 displayAlarm1Minute();
               }
               break;
               
-            case 2:                                                           // down button while on menu 2, alarm status
+            case 2:                                                           // up button while on menu 2, alarm status
               if (currentScreen == "displayAlarmStatus") {
                 toggleAlarmStatus();
                 lcd.clear();
                 displayAlarmStatus();
               }
               break;
+
+            case 3:
+              if(currentScreen == "displaySetTimeHour") {
+                lcd.clear();
+                incrementTimeHour();
+                displaySetTimeHour();
+              } else if (currentScreen == "displaySetTimeMinute") {
+                lcd.clear();
+                incrementTimeMinute();
+                displaySetTimeMinute();
+              } else if (currentScreen == "displaySetDateMonth") {
+                lcd.clear();
+                incrementDateMonth();
+                displaySetDateMonth();
+              } else if(currentScreen == "displaySetDateDay") {
+                lcd.clear();
+                incrementDateDay();
+                displaySetDateDay();
+              } else if (currentScreen == "displaySetDateYear") {
+                lcd.clear();
+                incrementDateYear();
+                displaySetDateYear();
+              }
           }
           break; // end of up button pressed case.
 
@@ -160,11 +185,13 @@ void loop() {
           switch(menu) {
             case 1:                                                           // down button press while on menu 1, alarm display && 
               if(currentScreen == "displayAlarm1Hour") {                      // on displayAlarm1Hour screen
-                  decrementAlarm1Hour(alarm1Hour);
+                  RTCAlarmTime al = clock.getAlarm1();
+                  decrementAlarm1Hour(al);
                   lcd.clear();
                   displayAlarm1Hour();
               } else if(currentScreen == "displayAlarm1Minute") {             // on displayAlarm1Minute screen
-                  decrementAlarm1Minute(alarm1Minute);
+                  RTCAlarmTime al = clock.getAlarm1();
+                  decrementAlarm1Minute(al);
                   lcd.clear();
                   displayAlarm1Minute();
               }
@@ -175,6 +202,30 @@ void loop() {
                 toggleAlarmStatus();
                 lcd.clear();
                 displayAlarmStatus();
+              }
+              break;
+
+            case 3:                                                           // down button while on menu 3 time set
+              if(currentScreen == "displaySetTimeHour") {
+                lcd.clear();
+                decrementTimeHour();
+                displaySetTimeHour();
+              } else if (currentScreen == "displaySetTimeMinute") {
+                lcd.clear();
+                decrementTimeMinute();
+                displaySetTimeMinute();
+              } else if (currentScreen == "displaySetDateMonth") {
+                lcd.clear();
+                decrementDateMonth();
+                displaySetDateMonth();
+              } else if(currentScreen == "displaySetDateDay") {
+                lcd.clear();
+                decrementDateDay();
+                displaySetDateDay();
+              } else if (currentScreen == "displaySetDateYear") {
+                lcd.clear();
+                decrementDateYear();
+                displaySetDateYear();
               }
               break;
           }
@@ -194,6 +245,28 @@ void loop() {
                 displayAlarm1();
               }
               break; 
+
+            case 3:
+              if (currentScreen == "changeDateTime") {
+                lcd.clear();
+                displaySetTimeHour();
+              } else if (currentScreen == "displaySetTimeHour") {
+                lcd.clear();
+                displaySetTimeMinute();
+              } else if (currentScreen == "displaySetTimeMinute") {
+                lcd.clear();
+                displaySetDateMonth();
+              } else if (currentScreen == "displaySetDateMonth") {
+                lcd.clear();
+                displaySetDateDay();
+              } else if (currentScreen == "displaySetDateDay") {
+                lcd.clear();
+                displaySetDateYear();
+              } else if (currentScreen == "displaySetDateYear") {
+                lcd.clear();
+                changeDateTime();
+              }
+              break;
           }                                                                 // end OK button pressed case
       }                                                                     // end of which button pressed
     }                                                                       // end of if statement on a button triggered.
@@ -207,8 +280,11 @@ void loop() {
     alarm();
   }
 
-  if (isMenuIdle()) {
-    menu = 0;
+  if (isMenuIdle()) {                                                       // if left on a menu other then clock for over 1 minute, change to clock
+    if(menu != 0) {
+      lcd.clear();
+      menu = 0;
+    }
   }
   
 }  // end loop
@@ -216,9 +292,9 @@ void loop() {
 void displayDateTime() {
   currentScreen = "displayDateTime";
   dt = clock.getDateTime();
-  lcd.setCursor(2, 0);
+  lcd.setCursor(1, 0);
   lcd.print(clock.dateFormat("M jS,Y", dt));
-  lcd.setCursor(3, 1);
+  lcd.setCursor(2, 1);
   lcd.print(clock.dateFormat("h:i:s A",dt));
 }
 
@@ -269,28 +345,119 @@ void displayAlarm1Minute() {
   lcd.setCursor(4,1);   lcd.print(clock.dateFormat("h:i A",alarm1));
 }
 
-void incrementAlarm1Hour(int value) {
-  alarm1Hour = incrementHour(value);
-  clock.setAlarm1(0,alarm1Hour,alarm1Minute,0,DS3231_MATCH_H_M_S);
+void displaySetTimeHour() {
+  currentScreen = "displaySetTimeHour";
+  lcd.clear(); lcd.home();
+  lcd.print("Set Clock Hour");
+  lcd.setCursor(0, 1);  lcd.print(clock.dateFormat("h:i A",clock.getDateTime())); 
 }
 
-void decrementAlarm1Hour(int value) {
-  alarm1Hour = decrementHour(value);
-  clock.setAlarm1(0,alarm1Hour,alarm1Minute,0,DS3231_MATCH_H_M_S);
+void displaySetTimeMinute() {
+  currentScreen = "displaySetTimeMinute";
+  lcd.clear(); lcd.home();
+  lcd.print("Set Clock Minutes");
+  lcd.setCursor(0, 1);  lcd.print(clock.dateFormat("h:i A",clock.getDateTime())); 
 }
 
-void incrementAlarm1Minute(int value) {
-  alarm1Minute = incrementMinute(value);
-  clock.setAlarm1(0,alarm1Hour,alarm1Minute,0,DS3231_MATCH_H_M_S);
+void displaySetDateMonth() {
+  currentScreen = "displaySetDateMonth";
+  lcd.clear(); lcd.home();
+  lcd.print("Set Date Month");
+  lcd.setCursor(0, 1);
+  lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
 }
 
-void decrementAlarm1Minute(int value) {
-  alarm1Minute = decrementMinute(value);
-  clock.setAlarm1(0,alarm1Hour,alarm1Minute,0,DS3231_MATCH_H_M_S);
+void displaySetDateDay() {
+  currentScreen = "displaySetDateDay";
+  lcd.clear(); lcd.home();
+  lcd.print("Set Date Day");
+  lcd.setCursor(0, 1);
+  lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
 }
 
-int incrementHour(int value) {
-  int returnValue;
+void displaySetDateYear() {
+  currentScreen = "displaySetDateYear";
+  lcd.clear(); lcd.home();
+  lcd.print("Set Date Year");
+  lcd.setCursor(0, 1);
+  lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
+}
+
+void changeDateTime() {
+  currentScreen = "changeDateTime";
+  lcd.clear();
+  lcd.home(); lcd.print("Change Date &");
+  lcd.setCursor(0,1); lcd.print("Time?");
+}
+
+void incrementTimeHour() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,now.day,incrementHour(now.hour),now.minute,now.second);
+}
+
+void decrementTimeHour(){
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,now.day,decrementHour(now.hour),now.minute,now.second);
+}
+
+void incrementTimeMinute() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,now.day,now.hour,incrementMinute(now.minute),now.second);
+}
+
+void decrementTimeMinute() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,now.day,now.hour,decrementMinute(now.minute),now.second);
+}
+
+void incrementDateMonth() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,incrementMonth(now.month),now.day,now.hour,now.minute,now.second);
+}
+
+void decrementDateMonth() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,decrementMonth(now.month),now.day,now.hour,now.minute,now.second);
+}
+
+void incrementDateDay() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,incrementDay(now.day),now.hour,now.minute,now.second);
+}
+
+void decrementDateDay() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(now.year,now.month,decrementDay(now.day),now.hour,now.minute,now.second);
+}
+
+void incrementDateYear() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(incrementYear(now.year),now.month,now.day,now.hour,now.minute,now.second);
+}
+
+void decrementDateYear() {
+  RTCDateTime now = clock.getDateTime();
+  clock.setDateTime(decrementYear(now.year),now.month,now.day,now.hour,now.minute,now.second);
+}
+
+void incrementAlarm1Hour(RTCAlarmTime al) {
+  clock.setAlarm1(0,incrementHour(al.hour),al.minute,0,DS3231_MATCH_H_M_S);
+}
+
+void decrementAlarm1Hour(RTCAlarmTime al) {
+  clock.setAlarm1(0,decrementHour(al.hour),al.minute,0,DS3231_MATCH_H_M_S);
+}
+
+void incrementAlarm1Minute(RTCAlarmTime al) {
+  clock.setAlarm1(0,al.hour,incrementMinute(al.minute),0,DS3231_MATCH_H_M_S);
+}
+
+void decrementAlarm1Minute(RTCAlarmTime al) {
+  clock.setAlarm1(0,al.hour,decrementMinute(al.minute),0,DS3231_MATCH_H_M_S);
+}
+
+uint8_t incrementHour(uint8_t value) {
+  uint8_t returnValue;
   if(value == 23) {
     returnValue = 0;
   } else {
@@ -299,8 +466,8 @@ int incrementHour(int value) {
   return returnValue;
 }
 
-int decrementHour(int value) {
-  int returnValue;
+uint8_t decrementHour(uint8_t value) {
+  uint8_t returnValue;
   if(value == 0) {
     returnValue = 23;
   } else {
@@ -309,8 +476,8 @@ int decrementHour(int value) {
   return returnValue;
 }
 
-int incrementMinute(int value) {
-  int returnValue;
+uint8_t incrementMinute(uint8_t value) {
+  uint8_t returnValue;
   if(value == 59) {
     returnValue = 0;
   } else {
@@ -319,10 +486,70 @@ int incrementMinute(int value) {
   return returnValue;
 }
 
-int decrementMinute(int value) {
-  int returnValue;
+uint8_t decrementMinute(uint8_t value) {
+  uint8_t returnValue;
   if(value == 0) {
     returnValue = 59;
+  } else {
+    returnValue = value - 1;
+  }
+  return returnValue;
+}
+
+uint8_t incrementMonth(uint8_t value) {
+  uint8_t returnValue;
+  if(value == 12) {
+    returnValue = 1;
+  } else {
+    returnValue = value + 1;
+  }
+  return returnValue;
+}
+
+uint8_t decrementMonth(uint8_t value) {
+  uint8_t returnValue;
+  if(value == 1) {
+    returnValue = 12;
+  } else {
+    returnValue = value - 1;
+  }
+  return returnValue;
+}
+
+uint8_t incrementDay(uint8_t value) {
+  uint8_t returnValue;
+  if(value == 31) {
+    returnValue = 1;
+  } else {
+    returnValue = value + 1;
+  }
+  return returnValue;
+}
+
+uint8_t decrementDay(uint8_t value) {
+  uint8_t returnValue;
+  if(value == 1) {
+    returnValue = 31;
+  } else {
+    returnValue = value - 1;
+  }
+  return returnValue;
+}
+
+uint16_t incrementYear(uint16_t value) {
+  uint16_t returnValue;
+  if(value == 2099) {
+    returnValue = 2099;
+  } else {
+    returnValue = value + 1;
+  }
+  return returnValue;
+}
+
+uint16_t decrementYear(uint16_t value) {
+  uint16_t returnValue;
+  if(value == 2021) {
+    returnValue = 2021;
   } else {
     returnValue = value - 1;
   }
@@ -340,7 +567,7 @@ void alarm() {
 
 void turnMotor() {
   turnMotorOn();
-  myStepper.step(stepsPerHalfRevolution);
+  myStepper.step(stepsPerRevolution / 2);
   turnMotorOff();
 }
 
