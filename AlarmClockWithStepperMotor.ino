@@ -4,7 +4,6 @@
 #include <LiquidCrystal_I2C.h>
 
 DS3231 clock;
-RTCDateTime dt;
 LiquidCrystal_I2C lcd(0x27, 16, 2); 
 RTCAlarmTime alarm1;
 
@@ -90,8 +89,7 @@ void setup() {
   myStepper.setSpeed(10);                       // set the speed at 60 rpm:                   
   
   Serial.begin(9600);                           // open the Serial port for monitoring
-  clock.begin();                                // start the clock
-  clock.setDateTime(__DATE__, __TIME__);        // set the clock to current system time
+  clock.begin();                               // start the clock
 
   lcd.init();                                   // initialize the lcd
   lcd.backlight();                              // turn on lcd backlight
@@ -273,7 +271,9 @@ void loop() {
   }                                                                         // end for loop of all buttons to check for input.
   
   if (menu == 0) {  // if the menu variable is 0, display current date and time
-    displayDateTime(); 
+    displayDateTime();
+    Serial.println(__TIME__);
+    Serial.println(__DATE__);
   }
   
   if(clock.isAlarm1()){                                                     // if alarm1 H and S match current time, trigger the alarm and do these things
@@ -291,6 +291,7 @@ void loop() {
 
 void displayDateTime() {
   currentScreen = "displayDateTime";
+  RTCDateTime dt;
   dt = clock.getDateTime();
   lcd.setCursor(1, 0);
   lcd.print(clock.dateFormat("M jS,Y", dt));
@@ -334,6 +335,7 @@ void displayAlarm1Hour() {
   RTCAlarmTime alarm1;
   alarm1 = clock.getAlarm1();
   lcd.setCursor(4,1);   lcd.print(clock.dateFormat("h:i A",alarm1));
+  lcd.setCursor(5,1); lcd.cursor();
 }
 
 void displayAlarm1Minute() {
@@ -343,6 +345,7 @@ void displayAlarm1Minute() {
   RTCAlarmTime alarm1;
   alarm1 = clock.getAlarm1();
   lcd.setCursor(4,1);   lcd.print(clock.dateFormat("h:i A",alarm1));
+  lcd.setCursor(8,1); lcd.cursor();
 }
 
 void displaySetTimeHour() {
@@ -350,6 +353,7 @@ void displaySetTimeHour() {
   lcd.clear(); lcd.home();
   lcd.print("Set Clock Hour");
   lcd.setCursor(0, 1);  lcd.print(clock.dateFormat("h:i A",clock.getDateTime())); 
+  lcd.setCursor(2,1); lcd.cursor();
 }
 
 void displaySetTimeMinute() {
@@ -357,6 +361,7 @@ void displaySetTimeMinute() {
   lcd.clear(); lcd.home();
   lcd.print("Set Clock Minutes");
   lcd.setCursor(0, 1);  lcd.print(clock.dateFormat("h:i A",clock.getDateTime())); 
+  lcd.setCursor(5,1); lcd.cursor();
 }
 
 void displaySetDateMonth() {
@@ -365,6 +370,7 @@ void displaySetDateMonth() {
   lcd.print("Set Date Month");
   lcd.setCursor(0, 1);
   lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
+  lcd.setCursor(2,1); lcd.cursor();
 }
 
 void displaySetDateDay() {
@@ -372,7 +378,8 @@ void displaySetDateDay() {
   lcd.clear(); lcd.home();
   lcd.print("Set Date Day");
   lcd.setCursor(0, 1);
-  lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
+  lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime())); 
+  lcd.setCursor(5,1); lcd.cursor(); 
 }
 
 void displaySetDateYear() {
@@ -381,6 +388,7 @@ void displaySetDateYear() {
   lcd.print("Set Date Year");
   lcd.setCursor(0, 1);
   lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
+  lcd.setCursor(12,1); lcd.cursor();
 }
 
 void changeDateTime() {
