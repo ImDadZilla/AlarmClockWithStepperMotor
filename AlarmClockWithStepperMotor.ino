@@ -279,6 +279,7 @@ void loop() {
               if (currentScreen == "displayTestMode") {
                 lcd.clear();
                 toggleTestMode();
+                displayTestMode();
               }
           }                                                                 // end OK button pressed case
       }                                                                     // end of which button pressed
