@@ -70,7 +70,7 @@ button buttons[] = {
   {BUTTON_PIN4},
 };
 const uint8_t NumButtons = sizeof(buttons) / sizeof(button);    // constant number of buttons in the array of button
-
+bool testMode = false;
 
 void setup() {
   // FAILSAFE!  This checks if pin1 is grounded and goes into endless loop.
@@ -107,7 +107,7 @@ void loop() {
       switch (i) {                              // which button was pressed?
         case 0:                                 // "menu" button pressed
           menu = menu + 1;
-          if(menu > 3) {
+          if(menu > 4) {
             menu = 0;
           }
           lcd.clear();
@@ -126,6 +126,10 @@ void loop() {
 
             case 3:
               changeDateTime();
+              break;
+
+            case 4:
+              displayTestMode();
               break;
           }
           break;                                                                // end of menu button pressed case
@@ -226,6 +230,11 @@ void loop() {
                 displaySetDateYear();
               }
               break;
+
+            default:
+              if(testMode) {
+                alarm();
+              }
           }
           break;                                                              // end of down button pressed case
         
@@ -265,6 +274,12 @@ void loop() {
                 changeDateTime();
               }
               break;
+
+            case 4:
+              if (currentScreen == "displayTestMode") {
+                lcd.clear();
+                toggleTestMode();
+              }
           }                                                                 // end OK button pressed case
       }                                                                     // end of which button pressed
     }                                                                       // end of if statement on a button triggered.
@@ -389,6 +404,28 @@ void displaySetDateYear() {
   lcd.setCursor(0, 1);
   lcd.print(clock.dateFormat("M jS,Y", clock.getDateTime()));  
   lcd.setCursor(12,1); lcd.cursor();
+}
+
+void displayTestMode() {
+  currentScreen = "displayTestMode";
+  lcd.clear(); lcd.home();
+  lcd.print("Test Mode");
+  lcd.setCursor(0, 1);
+  String testModeString;
+  if(testMode) {
+    testModeString = "ON";
+  } else {
+    testModeString = "OFF";
+  }
+  lcd.print(testModeString);
+}
+
+void toggleTestMode() {
+  if(testMode){
+    testMode = false;
+  } else {
+    testMode = true;
+  }
 }
 
 void changeDateTime() {
